@@ -1,0 +1,26 @@
+{
+    "name": "express-app-tested",
+    "version": "1.0.0",
+    "description": "Using Express, Node.js, Mongo DB and unit test",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/hendrysiak/express-app-tested.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/hendrysiak/express-app-tested/issues"
+    },
+    "homepage": "https://github.com/hendrysiak/express-app-tested#readme",
+    "private": true,
+    "dependencies": {
+        "express": "^4.17.1",
+        "jest": "^24.9.0",
+        "nodemon": "^1.19.1",
+        "supertest": "^4.0.2"
+    }
+}
