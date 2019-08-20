@@ -1,7 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser')
 
-const todo = require('./todo')
+const {
+    responseNotFound
+} = require('./helpers/helpers');
+
+const todoApi = require('./todoApi')
 
 const app = express();
 
@@ -10,7 +14,7 @@ app.use(bodyParser.json());
 
 
 
-app.get('/', todo.list);
+app.get('/', todoApi.list);
 
 // wyrzucanie na siłę błędu do testów
 
@@ -18,16 +22,15 @@ app.get('/', todo.list);
 //     throw new Error('Error!')
 // });
 
-app.post('/', todo.create);
-app.put('/:id', todo.change);
+app.post('/', todoApi.create);
+app.put('/:id', todoApi.change);
 
-app.delete('/:id', todo.delete);
+app.delete('/:id', todoApi.delete);
 
-app.post('/:id/toggle', todo.toggle);
+app.post('/:id/toggle', todoApi.toggle);
 
 app.get('*', (req, res) => {
-    res.status(404);
-    res.send('Not found')
+    responseNotFound(res);
 })
 
 app.use((err, req, res, next) => {
