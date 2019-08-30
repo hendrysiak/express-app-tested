@@ -12,7 +12,7 @@ const app = express();
 app.set('x-powered-by', false);
 app.use(bodyParser.json());
 
-
+// method http + params
 
 app.get('/', todoApi.list);
 
@@ -31,7 +31,7 @@ app.post('/:id/toggle', todoApi.toggle);
 
 app.get('*', (req, res) => {
     responseNotFound(res);
-})
+});
 
 app.use((err, req, res, next) => {
     console.log(error.stack)

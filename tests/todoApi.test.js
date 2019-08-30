@@ -1,4 +1,19 @@
-const todoApi = require('../todoApi');
+const {
+    connect,
+    disconnect,
+    drop
+} = require("../client");
+
+const {
+    ObjectId
+} = require('mongodb')
+
+const {
+    getTodos,
+    createTodo
+} = require('../db');
+
+const todoApi = require("../todoApi");
 
 let req;
 let res;
@@ -23,22 +38,26 @@ function expectTextResponse(text) {
     expect(res.json).not.toHaveBeenCalled();
 }
 
+beforeAll(connect);
+afterAll(disconnect);
+beforeEach(drop);
+
 beforeEach(() => {
     req = {
-        params: {},
+        params: {}
     };
     res = {
         json: jest.fn(),
         send: jest.fn(),
         status: jest.fn()
     };
-})
+});
 
-describe('list', () => {
-    it('works', () => {
-        todoApi.list(req, res);
+describe("list", () => {
+    it("works", async () => {
+        await todoApi.list(req, res);
 
-        const todos = todoApi.getTodos();
+        const todos = await getTodos();
 
         expectStatus(200);
         expectResponse(todos);
@@ -56,20 +75,20 @@ describe('list', () => {
         //         done: false
         //     }
         // ]);
-    })
+    });
 });
-describe('create', () => {
-    it('works', () => {
-        const name = 'Supper'
+describe("create", () => {
+    it("works", async () => {
+        const name = "Supper";
         const {
             length
-        } = todoApi.getTodos();
+        } = await getTodos();
         // expect(todo.getTodos()).toHaveLength(2); // czy długoś tablicy jest odpowiednia
         req.body = {
             name
         };
-        todoApi.create(req, res);
-        const todos = todoApi.getTodos();
+        await todoApi.create(req, res);
+        const todos = await getTodos();
         expectStatus(200);
         // expectResponse( ponieważ klient wie, co było nadane
         //     `Create: ${name}`
@@ -77,99 +96,97 @@ describe('create', () => {
 
         expectResponse(todos[todos.length - 1]); // spodziewamy się w odpowiedzi do klienta ostatniego elementu, który ma być tym, co wysłano
 
-
-
         expect(todos).toHaveLength(length + 1);
-        expect(new Set(todos.map(todo => todo.id)).size).toEqual(todos.length); // tworzymy zbiór, który będzie przyjmować tylko elementy niepowtarzalne za pomocą konstr. set; następnie mapujemy do tego zbioru id i otrzymujemy jego rozmiar (ilość unikalnych id) - to porównujemy z długością todo
+
+        // expect(new Set(todos.map(todo => todo.id)).size).toEqual(todos.length); // tworzymy zbiór, który będzie przyjmować tylko elementy niepowtarzalne za pomocą konstr. set; następnie mapujemy do tego zbioru id i otrzymujemy jego rozmiar (ilość unikalnych id) - to porównujemy z długością todo
+
         expect(todos[todos.length - 1]).toMatchObject({
             name,
             done: false
         }); // czy wartość pozycji pasuje
     });
-    it('handles missing body', () => {
-        todoApi.create(req, res);
+    it("handles missing body", async () => {
+        await todoApi.create(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name is missing'
+            error: "Name is missing"
         });
         // expect(next).toHaveBeenCalledTimes(1);
         // expect(next).toHaveBeenCalledWith(new Error('Name is missing'));
         // expect(res.json).not.toHaveBeenCalled(); //nigdy się nie wykona
-
     });
-    it('handles missing name in the body', () => {
+    it("handles missing name in the body", async () => {
         req.body = {};
-        todoApi.create(req, res);
+        await todoApi.create(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name is missing'
+            error: "Name is missing"
         });
         // expect(next).toHaveBeenCalledTimes(1);
         // expect(next).toHaveBeenCalledWith(new Error('Name is missing'));
         // expect(res.json).not.toHaveBeenCalled();
-
     });
-    it('handles an ampty name', () => {
+    it("handles an ampty name", async () => {
         req.body = {
-            name: ''
+            name: ""
         };
-        todoApi.create(req, res);
+        await todoApi.create(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name should not be empty'
+            error: "Name should not be empty"
         });
         // expect(next).toHaveBeenCalledTimes(1);
         // expect(next).toHaveBeenCalledWith(new Error('Name should not be empty'));
         // expect(res.json).not.toHaveBeenCalled();
-
     });
-    it('handles an empty name (after triming)', () => {
+    it("handles an empty name (after triming)", async () => {
         req.body = {
-            name: '  '
+            name: "  "
         };
-        todoApi.create(req, res);
+        await todoApi.create(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name should not be empty'
+            error: "Name should not be empty"
         });
         // expect(next).toHaveBeenCalledTimes(1);
         // expect(next).toHaveBeenCalledWith(new Error('Name should not be empty'));
         // expect(res.json).not.toHaveBeenCalled();
-
     });
-    it('handles wrong name type', () => {
+    it("handles wrong name type", async () => {
         req.body = {
             name: 42
         };
-        todoApi.create(req, res);
+        await todoApi.create(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name should be a string'
+            error: "Name should be a string"
         });
         // expect(next).toHaveBeenCalledTimes(1);
         // expect(next).toHaveBeenCalledWith(new Error('Name should be a string'));
         // expect(res.json).not.toHaveBeenCalled();
-
     });
 });
-describe('change', () => {
+describe("change", () => {
     const id = 42;
-    const name = 'Supper';
-    const nextName = 'Lunch'; //nazwa po zmianie
-    it('works', () => {
-        todoApi.addTodo(todoApi.createTodo(name, id));
+    const name = "Supper";
+    const nextName = "Lunch"; //nazwa po zmianie
+    it("works", async () => {
+        // todoApi.addTodo(await todoApi.createTodo(name, id));
+        const {
+            _id
+        } = await createTodo(name);
         const {
             length
-        } = todoApi.getTodos();
-        req.params.id = id;
+        } = await getTodos();
+        req.params.id = _id;
         req.body = {
             name: nextName
         };
-        todoApi.change(req, res);
-        const todos = todoApi.getTodos();
+        await todoApi.change(req, res);
+        const todos = await getTodos();
 
-
-        const todo = todos.find(todo => todo.id === id); // znajdziemy todo o takim samym identyfikatorze, jak podany i przypiszemy do zmiennej
+        // const todo = todos.find(todo => todo.id === id); // znajdziemy todo o takim samym identyfikatorze, jak podany i przypiszemy do zmiennej
+        const todo = todos.find(todo => todo._id.equals(_id));
 
         expectStatus(200);
         expectResponse(todo);
@@ -180,145 +197,200 @@ describe('change', () => {
             name: nextName
         });
     });
-    it('handles missing todo', () => {
-        req.params.id = 'whatever';
+    it("handles ObjectId id", async () => {
+        req.params.id = ObjectId("whatever1234");
         req.body = {
             name: nextName
         };
-        todoApi.change(req, res);
+        await todoApi.change(req, res);
 
         expectStatus(404);
-        expectTextResponse('Not found');
-
+        expectTextResponse("Not found");
     });
-    it('handles missing body', () => {
+    it("handles missing todo", async () => {
+        req.params.id = "whatever";
+        req.body = {
+            name: nextName
+        };
+        await todoApi.change(req, res);
+
+        expectStatus(404);
+        expectTextResponse("Not found");
+    });
+    it("handles missing body", async () => {
         req.params.id = id;
-        todoApi.change(req, res);
+        await todoApi.change(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name is missing'
+            error: "Name is missing"
         });
-
     });
-    it('handles missing name in the body', () => {
+    it("handles missing name in the body", async () => {
         req.params.id = id;
         req.body = {};
-        todoApi.change(req, res);
+        await todoApi.change(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name is missing'
+            error: "Name is missing"
         });
-
     });
-    it('handles an ampty name', () => {
+    it("handles an ampty name", async () => {
         req.params.id = id;
         req.body = {
-            name: ''
+            name: ""
         };
-        todoApi.change(req, res);
+        await todoApi.change(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name should not be empty'
+            error: "Name should not be empty"
         });
-
     });
-    it('handles an empty name (after triming)', () => {
+    it("handles an empty name (after triming)", async () => {
         req.params.id = id;
         req.body = {
-            name: '  '
+            name: "  "
         };
-        todoApi.change(req, res);
+        await todoApi.change(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name should not be empty'
+            error: "Name should not be empty"
         });
-
     });
-    it('handles wrong name type', () => {
+    it("handles wrong name type", async () => {
         req.params.id = id;
         req.body = {
             name: 42
         };
-        todoApi.change(req, res);
+        await todoApi.change(req, res);
         expectStatus(400);
         expectResponse({
-            error: 'Name should be a string'
+            error: "Name should be a string"
         });
-
     });
 });
-describe('delete', () => {
+describe("delete", () => {
     const id = 42;
-
-    it('works', () => {
-        todoApi.addTodo(todoApi.createTodo('Supper', id));
+    const name = "Supper";
+    it("works", async () => {
+        const todo = await createTodo(name);
+        // await todoApi.addTodo(await todoApi.createTodo("Supper", id));
         const {
             length
-        } = todoApi.getTodos();
-        const todo = todoApi.getTodos().find(todo => todo.id === id); // znajdziemy todo o takim samym identyfikatorze, jak podany i przypiszemy do zmiennej
-        req.params.id = id;
+        } = await getTodos();
+        req.params.id = todo._id;
+        // const todo = (await getTodos()).find(todo => todo.id === id); // znajdziemy todo o takim samym identyfikatorze, jak podany i przypiszemy do zmiennej
 
-        todoApi.delete(req, res);
 
-        const todos = todoApi.getTodos();
+        await todoApi.delete(req, res);
+
+        const todos = await getTodos();
 
         expectStatus(200);
         expectResponse(todo);
 
         expect(todos).toHaveLength(length - 1);
     });
-    it('handles missing todo', () => {
-        req.params.id = 'whatever';
-        todoApi.delete(req, res);
+    it("handles missing todo", async () => {
+        req.params.id = "whatever";
+        await todoApi.delete(req, res);
 
         expectStatus(404);
-        expectTextResponse('Not found');
-
+        expectTextResponse("Not found");
     });
 });
-describe('toggle', () => {
+describe("toggle", () => {
     const id = 42;
-
-    it('works', () => {
-        todoApi.addTodo(todoApi.createTodo('Supper', id));
+    const name = "Supper";
+    it("works with toggling to true", async () => {
+        // await todoApi.addTodo(await todoApi.createTodo("Supper", id));
+        const {
+            _id
+        } = await createTodo(name, false);
+        // const {
+        //     _id
+        // } = todo;
         const {
             length
-        } = todoApi.getTodos();
-        const todo = todoApi.getTodos().find(todo => todo.id === id); // znajdziemy todo o takim samym identyfikatorze, jak podany i przypiszemy do zmiennej
-        req.params.id = id;
+        } = await getTodos();
+        req.params.id = _id;
+        req.body = {
+            done: true
+        };
+        await todoApi.toggle(req, res);
 
-        todoApi.toggle(req, res);
+        const todos = await getTodos();
+        const todo = todos.find(todo => todo._id.equals(_id));
+        // const todo = (await getTodos()).find(todo => todo.id === id); // znajdziemy todo o takim samym identyfikatorze, jak podany i przypiszemy do zmiennej
 
-        const todos = todoApi.getTodos();
 
         expectStatus(200);
         expectResponse(todo);
         expect(todos).toHaveLength(length);
         expect(todo.done).toEqual(true);
     });
-    it('works with toggling back', () => {
-        todoApi.addTodo(todoApi.createTodo('Supper', id, true));
+    it("works with toggling to false", async () => {
+        // await todoApi.addTodo(await todoApi.createTodo("Supper", id, true));
+        // await todoApi.addTodo(await todoApi.createTodo("Supper", id));
+        // const {
+        //     _id
+        // } = todo;
+        const {
+            _id
+        } = await createTodo(name, true);
         const {
             length
-        } = todoApi.getTodos();
-        req.params.id = id;
+        } = await getTodos();
+        req.params.id = _id;
+        req.body = {
+            done: false
+        };
 
-        todoApi.toggle(req, res);
+        await todoApi.toggle(req, res);
 
-
-        const todos = todoApi.getTodos();
-        const todo = todoApi.getTodos().find(todo => todo.id === id); // znajdziemy todo o takim samym identyfikatorze, jak podany i przypiszemy do zmiennej
+        const todos = await getTodos();
+        const todo = todos.find(todo => todo._id.equals(_id));
+        // const todo = (await getTodos()).find(todo => todo.id === id); // znajdziemy todo o takim samym identyfikatorze, jak podany i przypiszemy do zmiennej
         expectStatus(200);
         expectResponse(todo);
         expect(todos).toHaveLength(length);
         expect(todo.done).toEqual(false);
     });
-    it('handles missing todo', () => {
-        req.params.id = 'whatever';
-        todoApi.toggle(req, res);
+    it("handles missing todo", async () => {
+        req.params.id = "whatever";
+        req.body = {
+            done: true
+        };
+        await todoApi.toggle(req, res);
 
         expectStatus(404);
-        expectTextResponse('Not found');
-
+        expectTextResponse("Not found");
+    });
+    it("handles missing body", async () => {
+        req.params.id = id;
+        await todoApi.toggle(req, res);
+        expectStatus(400);
+        expectResponse({
+            error: "Done is missing"
+        });
+    });
+    it("handles missing done in the body", async () => {
+        req.params.id = id;
+        req.body = {};
+        await todoApi.toggle(req, res);
+        expectStatus(400);
+        expectResponse({
+            error: "Done is missing"
+        });
+    });
+    it("handles wrong done type", async () => {
+        req.params.id = id;
+        req.body = {
+            done: 42
+        };
+        await todoApi.toggle(req, res);
+        expectStatus(400);
+        expectResponse({
+            error: "Done should be a boolean"
+        });
     });
 });

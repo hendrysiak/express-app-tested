@@ -1,30 +1,52 @@
 const {
+    getTodos,
+    createTodo,
+    findAndUpdateTodo,
+    findAndDeleteTodo
+} = require('./db');
+
+const {
     responseWithError,
     responseNotFound
 } = require('./helpers/helpers');
 
-let id = 1;
+// let id = 1;
 
-function getId() {
-    const currentId = id;
-    id += 1;
-    return currentId;
-};
+// function getId() {
+//     const currentId = id;
+//     id += 1;
+//     return currentId;
+// };
 
-function createTodo(name, id = getId(), done = false) {
-    return {
-        id,
-        name,
-        done
-    };
-};
+// function deprecatedCreateTodo(name, id = getId(), done = false) {
+//     return {
+//         id,
+//         name,
+//         done
+//     };
+// };
 
 
-const todos = [createTodo("Dinner"), createTodo("Sandwiches")];
+// const todos = [deprecatedCreateTodo("Dinner"), deprecatedCreateTodo("Sandwiches")];
 
-function addTodo(todo) {
-    todos.push(todo)
-};
+// function deprecatedAddTodo(todo) {
+//     todos.push(todo)
+// };
+
+
+// function findTodo(id) {
+//     const numberId = Number(id);
+//     return todos.find(todo => todo.id === numberId)
+// };
+
+
+// exports.getTodos = () => todos;
+
+// exports.createTodo = deprecatedCreateTodo;
+// exports.createTodo = createTodo;
+
+// exports.addTodo = deprecatedAddTodo;
+// exports.addTodo = addTodo;
 
 function verifyName(req, res) {
     if (!req.body || !req.body.hasOwnProperty("name")) {
@@ -45,32 +67,35 @@ function verifyName(req, res) {
     }
 };
 
-function findTodo(id) {
-    const numberId = Number(id);
-    return todos.find(todo => todo.id === numberId)
+function verifyDone(req, res) {
+    if (!req.body || !req.body.hasOwnProperty("done")) {
+        return responseWithError(res, "Done is missing");
+    }
+    let {
+        done
+    } = req.body;
+    if (typeof done !== "boolean") {
+        return responseWithError(res, "Done should be a boolean");
+    }
+    return {
+        done
+    }
 };
-
-
-exports.getTodos = () => todos;
-
-exports.createTodo = createTodo;
-
-exports.addTodo = addTodo;
-
-exports.list = (req, res) => {
+exports.list = async (req, res) => {
+    const todos = await getTodos();
     res.json(todos);
     // res.send('List)
 };
 
-exports.create = (req, res) => {
+exports.create = async (req, res) => {
     const cleanName = verifyName(req, res)
     if (!cleanName) {
         return;
     };
-    const name = req.body.name.trim();
-    const todo = createTodo(cleanName.name);
+    // const name = req.body.name.trim();
+    const todo = await createTodo(cleanName.name);
 
-    addTodo(todo);
+    // addTodo(todo)
     res.json(todo);
 
     // if (!req.body || !req.body.hasOwnProperty('name')) {
@@ -88,31 +113,47 @@ exports.create = (req, res) => {
     // res.json(`Create: ${name}`)
 };
 
-exports.change = (req, res) => {
+exports.change = async (req, res) => {
     const cleanName = verifyName(req, res)
     if (!cleanName) {
         return;
     };
-    const todo = findTodo(req.params.id);
-    if (typeof todo === 'undefined') {
+    // const todo = findTodo(req.params.id);
+    const todo = await findAndUpdateTodo(req.params.id, {
+        $set: {
+            name: cleanName.name
+        }
+    });
+    // if (typeof todo === 'undefined') {
+    if (todo === null) {
         return responseNotFound(res)
     }
-    todo.name = cleanName.name
+    // todo.name = cleanName.name
     res.json(todo);
 };
-exports.delete = (req, res) => {
-    const todo = findTodo(req.params.id);
-    if (typeof todo === 'undefined') {
+exports.delete = async (req, res) => {
+    const todo = await findAndDeleteTodo(req.params.id);
+    if (todo === null) {
         return responseNotFound(res)
     }
-    todos.splice(todos.indexOf(todo), 1);
+    // todos.splice(todos.indexOf(todo), 1);
     res.json(todo);
 };
-exports.toggle = (req, res) => {
-    const todo = findTodo(req.params.id);
-    if (typeof todo === 'undefined') {
+exports.toggle = async (req, res) => {
+    const cleanDone = verifyDone(req, res);
+    if (!cleanDone) {
+        return;
+    };
+    const todo = await findAndUpdateTodo(req.params.id, {
+        $set: {
+            done: cleanDone.done
+        }
+    });
+    // const todo = findTodo(req.params.id);
+    // if (typeof todo === 'undefined') {
+    if (todo === null) {
         return responseNotFound(res)
     };
-    todo.done = !todo.done;
+    // todo.done = !todo.done;
     res.json(todo);
 };
